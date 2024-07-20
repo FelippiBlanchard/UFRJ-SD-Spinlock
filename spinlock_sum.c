@@ -40,7 +40,8 @@ int global_result_sum = 0;
 void *multithread_sum(void *arg) {
     thread_args_t *multithread_args = (thread_args_t *)arg;
     int start = multithread_args->index_start;
-    int end = (multithread_args->thread_id == multithread_args->thread_count - 1) ? multithread_args->size_vetor : start + multithread_args->size_vetor / multithread_args->thread_count;
+    int end = (multithread_args->thread_id == multithread_args->thread_count - 1) ? 
+        multithread_args->size_vetor : start + multithread_args->size_vetor / multithread_args->thread_count;
 
     multithread_args->local_sum = 0;
     for (int i = start; i < end; i++) {
@@ -86,6 +87,18 @@ int main() {
     for (int i = 0; i < sizeof(N) / sizeof(N[0]); i++) {
         int size_vetor = N[i];
 
+        // Gerar o vetor de números aleatórios uma vez por N
+        int8_t *vetor = malloc(size_vetor * sizeof(int8_t));
+        if (vetor == NULL) {
+            fprintf(stderr, "Memory allocation failed\n");
+            return EXIT_FAILURE;
+        }
+
+        srand(time(NULL));
+        for (int l = 0; l < size_vetor; l++) {
+            vetor[l] = rand() % 201 - 100;
+        }
+
         for (int j = 0; j < sizeof(K) / sizeof(K[0]); j++) {
             int qty_thread = K[j];
 
@@ -100,16 +113,6 @@ int main() {
             for (int k = 0; k < qty_repeat; k++) {
                 pthread_t threads[qty_thread];
                 thread_args_t multithread_args[qty_thread];
-                int8_t *vetor = malloc(size_vetor * sizeof(int8_t));
-                if (vetor == NULL) {
-                    fprintf(stderr, "Memory allocation failed\n");
-                    return EXIT_FAILURE;
-                }
-
-                srand(time(NULL));
-                for (int l = 0; l < size_vetor; l++) {
-                    vetor[l] = rand() % 201 - 100;
-                }
 
                 init_lock(&spin_lock);
                 global_result_sum = 0;
@@ -151,7 +154,6 @@ int main() {
                     printf("Sum mismatch for size_vetor=%d and thread_count=%d on iteration %d.\n", size_vetor, qty_thread, k + 1);
                 }
 
-                free(vetor);
                 free(st_result);
             }
 
@@ -163,6 +165,8 @@ int main() {
 
             fprintf(output_file, "%d,%d,%.5f,%.5f\n", size_vetor, qty_thread, avg_mt_time, avg_st_time);
         }
+
+        free(vetor); // Liberar memória do vetor após todas as iterações de K
     }
 
     fclose(output_file);
